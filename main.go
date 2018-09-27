@@ -5,7 +5,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 )
+
+type config struct {
+	User string  `json:"user"`
+	PWD  string  `json:"pwd"`
+}
 
 type populatedRestReference struct {
 	Link  string `json:"link,omitempty"`
@@ -153,15 +159,29 @@ func printJSON(v interface{}) {
 	}
 }
 
+func LoadConfiguration(file string) config {
+	var conf config
+	configFile, err := os.Open(file)
+	defer configFile.Close()
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	jsonParser := json.NewDecoder(configFile)
+	jsonParser.Decode(&conf)
+	return conf
+}
+
 func main() {
 
 	var buildTasks SBATasks
+	cfile := "config.json"
 	var f interface{}
 	req, err := http.NewRequest("GET", "https://cdw.service-now.com/api/now/table/task?sysparm_query=company%3D967f64e86f5e4140174324dfae3ee498%5Eopened_at%3Ejavascript%3Ags.dateGenerate('2018-09-11'%2C'23%3A59%3A59')%5Eshort_description%3DAutomated%20Server%20Build%3A%20Create%20vm%20access%20script%20%26%20add%20entry%20to%20bmn%20%2Fetc%2Fhosts%5EORshort_description%3DApply%20the%20customer%20specific%20silo%20template%5EORshort_description%3DAutomated%20Server%20Build%3A%20Build%20Virtual%20Machine&sysparm_display_value=cmdb_ci&", nil)
 	if err != nil {
 		fmt.Println("Ma bad, must be a dagum typo.")
 	}
-
+	cStruct := LoadConfiguration(cfile)
+	req.SetBasicAuth(cStruct.User, cStruct.PWD)
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
