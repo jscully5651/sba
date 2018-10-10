@@ -9,8 +9,8 @@ import (
 )
 
 type config struct {
-	User string  `json:"user"`
-	PWD  string  `json:"pwd"`
+	User string `json:"user"`
+	PWD  string `json:"pwd"`
 }
 
 type populatedRestReference struct {
@@ -126,17 +126,8 @@ type SBATasks struct {
 	} `json:"result"`
 }
 
-func Unmarshal(data []byte, v interface{}) error {
-	switch vv := v.(type) {
-	case string:
-		fmt.Println("is string", vv)
-	default:
-		fmt.Println("Unknown type")
-	}
-	return nil
-}
+func (ts *SBATasks) printJSON(v interface{}) {
 
-func printJSON(v interface{}) {
 	switch vv := v.(type) {
 	case string:
 		fmt.Println("is string")
@@ -145,14 +136,13 @@ func printJSON(v interface{}) {
 	case []interface{}:
 		fmt.Println("is an array")
 		for i, u := range vv {
-			fmt.Print(i, " ")
-			printJSON(u)
+			fmt.Print(i, " : ", u)
 		}
 	case map[string]interface{}:
 		fmt.Println("is an object", vv)
 		for i, u := range vv {
-			fmt.Print(i, " ")
-			printJSON(u)
+			fmt.Printf("i is: %T and u is: %T \n", i, u)
+			fmt.Print(i, " : ", u)
 		}
 	default:
 		fmt.Println("Unknown type")
@@ -176,7 +166,8 @@ func main() {
 	var buildTasks SBATasks
 	cfile := "config.json"
 	var f interface{}
-	req, err := http.NewRequest("GET", "https://cdw.service-now.com/api/now/table/task?sysparm_query=company%3D967f64e86f5e4140174324dfae3ee498%5Eopened_at%3Ejavascript%3Ags.dateGenerate('2018-09-11'%2C'23%3A59%3A59')%5Eshort_description%3DAutomated%20Server%20Build%3A%20Create%20vm%20access%20script%20%26%20add%20entry%20to%20bmn%20%2Fetc%2Fhosts%5EORshort_description%3DApply%20the%20customer%20specific%20silo%20template%5EORshort_description%3DAutomated%20Server%20Build%3A%20Build%20Virtual%20Machine&sysparm_display_value=cmdb_ci&", nil)
+
+	req, err := http.NewRequest("GET", "https://cdw.service-now.com/api/now/table/task?sysparm_query=company%3D967f64e86f5e4140174324dfae3ee498%5Eopened_at%3Ejavascript%3Ags.dateGenerate('2018-09-11'%2C'23%3A59%3A59')%5Eshort_description%3DAutomated%20Server%20Build%3A%20Create%20vm%20access%20script%20%26%20add%20entry%20to%20bmn%20%2Fetc%2Fhosts%5EORshort_description%3DApply%20the%20customer%20specific%20silo%20template%5EORshort_description%3DAutomated%20Server%20Build%3A%20Build%20Virtual%20Machine&sysparm_display_value=cmdb_ci&sysparm_limit=2", nil)
 	if err != nil {
 		fmt.Println("Ma bad, must be a dagum typo.")
 	}
@@ -191,7 +182,7 @@ func main() {
 	defer resp.Body.Close()
 	bs, rerr := ioutil.ReadAll(resp.Body)
 	if rerr != nil {
-		// do something
+		panic(rerr.Error())
 	}
 
 	json.Unmarshal(bs, &f)
@@ -203,16 +194,19 @@ func main() {
 		case float64:
 			fmt.Println(k, "is float64", vv)
 		case []interface{}:
-			fmt.Println(k, "is an array:")
+			fmt.Println(k, "is an slice:")
 			for i, u := range vv {
 				fmt.Println(i, u)
+				buildTasks.printJSON(u)
 			}
+
 		default:
 			fmt.Println(k, "is of a type I don't know how to handle")
 		}
+		fmt.Println(buildTasks)
 	}
-	printJSON((f))
 
+	var BuildTasks1 SBATasks
 	resp1, err1 := http.DefaultClient.Do(req)
 	if err1 != nil {
 		panic(err1.Error())
@@ -220,9 +214,12 @@ func main() {
 	defer resp1.Body.Close()
 	bs1, rerr1 := ioutil.ReadAll(resp1.Body)
 	if rerr1 != nil {
-		// do something
+		panic(rerr1.Error())
 	}
-
-	json.Unmarshal(bs1, &buildTasks)
+	json.Unmarshal(bs1, &BuildTasks1)
+	for i := 0; i < len(BuildTasks1.Result); i++ {
+		fmt.Println(BuildTasks1.Result[i].ShortDescription)
+		fmt.Println(BuildTasks1.Result[i].CmdbCi.Link)
+	}
 
 }
